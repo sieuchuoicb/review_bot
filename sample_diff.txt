@@ -1,0 +1,25 @@
+diff --git a/billing/invoice.py b/billing/invoice.py
+index 3f2a1c9..8b7e421 100644
+--- a/billing/invoice.py
++++ b/billing/invoice.py
+@@ -12,7 +12,7 @@ class Invoice:
+     def total(self):
+         subtotal = sum(item.price * item.qty for item in self.line_items)
+-        return subtotal
++        return subtotal * (1 + self.tax_rate) if self.tax_rate else subtotal
+
+@@ -30,6 +30,15 @@ class Invoice:
+     def apply_discount(self, code):
+         discount = DISCOUNT_CODES.get(code)
+-        if discount:
+-            self.total_override = self.total() * (1 - discount)
++        try:
++            if discount:
++                self.total_override = self.total() * (1 - discount)
++        except Exception:
++            pass
+
++    def export_csv(self, path):
++        with open(path, "w") as f:
++            f.write(f"invoice_id,total\n{self.id},{self.total()}\n")
++        return path

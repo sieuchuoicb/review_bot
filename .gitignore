@@ -14,3 +14,6 @@ dist/
 # Run outputs (findings, audit logs)
 runs/
 .DS_Store
+
+# Personal working notes, kept local
+takenote.txt

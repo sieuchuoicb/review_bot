@@ -1,0 +1,219 @@
+{
+  "diff_source": "sample_diff.txt",
+  "repo": "examples/billing-service",
+  "generated_at": "2026-11-07T08:22:19+00:00",
+  "mode": "full",
+  "changed_files": [
+    "billing/invoice.py"
+  ],
+  "risk": {
+    "level": "high",
+    "reasons": [
+      "[high] test fails after the PR: test_total_excludes_tax",
+      "[high] touches sensitive path billing/**",
+      "[medium] lint S110, BLE001 on a changed line (billing/invoice.py:35)",
+      "[medium] public function Invoice.total changed and has 4 caller(s)",
+      "[medium] new public function Invoice.export_csv has no test"
+    ]
+  },
+  "findings": [
+    {
+      "id": "safety.test:tests/test_invoice.py::test_total_excludes_tax",
+      "dimension": "safety",
+      "title": "Test regression: test_total_excludes_tax passes before this PR and fails after it",
+      "severity": "high",
+      "evidence_level": "proven",
+      "source": "pytest (before vs after)",
+      "file": "tests/test_invoice.py",
+      "line": 14,
+      "detail": "",
+      "evidence": "assert 110.00000000000001 == 100.0 \u00b1 1.0e-04\n  \n  comparison failed\n  Obtained: 110.00000000000001\n  Expected: 100.0 \u00b1 1.0e-04"
+    },
+    {
+      "id": "policy.sensitive-path:billing/**",
+      "dimension": "policy",
+      "title": "Touches billing/**: Moves money. Needs 2 approving reviewers.",
+      "severity": "high",
+      "evidence_level": "proven",
+      "source": "rule:sensitive-path",
+      "file": "billing/invoice.py",
+      "line": null,
+      "detail": "Files: billing/invoice.py",
+      "evidence": ""
+    },
+    {
+      "id": "safety.callers:billing/invoice.py:Invoice.total",
+      "dimension": "safety",
+      "title": "Invoice.total() changed; 4 call site(s) depend on it, including billing/reports.py",
+      "severity": "medium",
+      "evidence_level": "proven",
+      "source": "rule:changed-function-callers (AST, matched by name)",
+      "file": "billing/invoice.py",
+      "line": 12,
+      "detail": "billing/invoice.py:20 in Invoice.payable: return self.total()\nbilling/invoice.py:34 in Invoice.apply_discount: self.total_override = self.total() * (1 - discount)\nbilling/invoice.py:40 in Invoice.export_csv: f.write(f\"invoice_id,total\\n{self.id},{self.total()}\\n\")\nbilling/reports.py:12 in monthly_revenue: revenue += inv.total() * (1 + rate)",
+      "evidence": ""
+    },
+    {
+      "id": "quality.ruff:billing/invoice.py:35",
+      "dimension": "quality",
+      "title": "`try`-`except`-`pass` detected, consider logging the exception / Do not catch blind exception: `Exception`",
+      "severity": "medium",
+      "evidence_level": "proven",
+      "source": "ruff S110, BLE001",
+      "file": "billing/invoice.py",
+      "line": 35,
+      "detail": "S110: `try`-`except`-`pass` detected, consider logging the exception\nBLE001: Do not catch blind exception: `Exception`",
+      "evidence": "except Exception:"
+    },
+    {
+      "id": "policy.untested:billing/invoice.py:Invoice.export_csv",
+      "dimension": "policy",
+      "title": "New public function Invoice.export_csv() has no test that references it",
+      "severity": "medium",
+      "evidence_level": "proven",
+      "source": "rule:new-public-function-requires-test",
+      "file": "billing/invoice.py",
+      "line": 38,
+      "detail": "",
+      "evidence": ""
+    },
+    {
+      "id": "llm:behaviour_change:billing/invoice.py:Invoice.total:billing/reports.py:12",
+      "dimension": "safety",
+      "title": "monthly_revenue now double-applies tax because it multiplies inv.total() by (1 + rate) even though total() itself now includes tax.",
+      "severity": "medium",
+      "evidence_level": "hypothesis",
+      "source": "llm:openrouter/z-ai/glm-5.3-flash \u00b7 behaviour_change \u00b7 confidence high",
+      "file": "billing/reports.py",
+      "line": 12,
+      "detail": "The docstring (line 7) states the assumption 'Invoice.total() is pre-tax, so tax is applied here', but after this PR total() returns subtotal * (1 + tax_rate). For any invoice with a nonzero tax_rate the contribution becomes subtotal * (1+rate)^2, so monthly revenue is taxed twice.",
+      "evidence": "revenue += inv.total() * (1 + rate)"
+    },
+    {
+      "id": "llm:behaviour_change:billing/invoice.py:Invoice.total:billing/invoice.py:34",
+      "dimension": "safety",
+      "title": "apply_discount now computes the discount on the tax-inclusive total, so the same discount code produces a different total_override (and thus a different payable) than before for any invoice with a tax rate.",
+      "severity": "medium",
+      "evidence_level": "hypothesis",
+      "source": "llm:openrouter/z-ai/glm-5.3-flash \u00b7 behaviour_change \u00b7 confidence medium",
+      "file": "billing/invoice.py",
+      "line": 34,
+      "detail": "Line 34 sets total_override = self.total() * (1 - discount). total() previously returned the pre-tax subtotal and now returns subtotal * (1 + tax_rate), so the discount silently applies to tax as well; payable() (lines 18-20) returns this override, changing what discounted customers are charged.",
+      "evidence": "self.total_override = self.total() * (1 - discount)"
+    },
+    {
+      "id": "llm:new_method:billing/invoice.py:Invoice.export_csv:billing/invoice.py:40",
+      "dimension": "safety",
+      "title": "export_csv writes self.total() instead of self.payable(), so an invoice with an applied discount exports the pre-discount amount, contradicting the class's own definition of what the customer pays.",
+      "severity": "medium",
+      "evidence_level": "hypothesis",
+      "source": "llm:openrouter/z-ai/glm-5.3-flash \u00b7 new_method \u00b7 confidence high",
+      "file": "billing/invoice.py",
+      "line": 40,
+      "detail": "apply_discount (lines 30-36) sets total_override, and payable() (lines 16-20) is the method that returns the discounted amount; export_csv bypasses it and reports the raw total, producing a CSV that disagrees with payable() for any discounted invoice.",
+      "evidence": "f.write(f\"invoice_id,total\\n{self.id},{self.total()}\\n\")"
+    }
+  ],
+  "questions": [
+    {
+      "id": "behaviour_change:billing/invoice.py:Invoice.total",
+      "kind": "behaviour_change",
+      "target": "Invoice.total",
+      "file": "billing/invoice.py",
+      "line": 12,
+      "trigger": "Invoice.total() changed and has 4 caller(s) in 1 other file(s)",
+      "ask": "`Invoice.total` changed in this PR (before and after are shown). For each caller shown, does the change break the caller's result or the assumptions it makes? Report only concrete problems, and cite the caller line.",
+      "context": [
+        {
+          "label": "before: Invoice.total",
+          "file": "billing/invoice.py",
+          "start_line": 12,
+          "code": "    def total(self):\n        subtotal = sum(item.price * item.qty for item in self.line_items)\n        return subtotal",
+          "version": "base",
+          "focus_line": null
+        },
+        {
+          "label": "after: Invoice.total",
+          "file": "billing/invoice.py",
+          "start_line": 12,
+          "code": "    def total(self):\n        subtotal = sum(item.price * item.qty for item in self.line_items)\n        return subtotal * (1 + self.tax_rate) if self.tax_rate else subtotal",
+          "version": "head",
+          "focus_line": null
+        },
+        {
+          "label": "caller: monthly_revenue",
+          "file": "billing/reports.py",
+          "start_line": 4,
+          "code": "def monthly_revenue(invoices):\n    \"\"\"Revenue for the month, including tax.\n\n    Invoice.total() is pre-tax, so tax is applied here, per invoice.\n    \"\"\"\n    revenue = 0.0\n    for inv in invoices:\n        rate = inv.tax_rate or 0.0\n        revenue += inv.total() * (1 + rate)\n    return round(revenue, 2)",
+          "version": "head",
+          "focus_line": 12
+        },
+        {
+          "label": "caller: Invoice.payable",
+          "file": "billing/invoice.py",
+          "start_line": 16,
+          "code": "    def payable(self):\n        \"\"\"What the customer pays: the discounted total if a code was applied.\"\"\"\n        if self.total_override is not None:\n            return self.total_override\n        return self.total()",
+          "version": "head",
+          "focus_line": 20
+        },
+        {
+          "label": "caller: Invoice.apply_discount",
+          "file": "billing/invoice.py",
+          "start_line": 30,
+          "code": "    def apply_discount(self, code):\n        discount = DISCOUNT_CODES.get(code)\n        try:\n            if discount:\n                self.total_override = self.total() * (1 - discount)\n        except Exception:\n            pass",
+          "version": "head",
+          "focus_line": 34
+        },
+        {
+          "label": "caller: Invoice.export_csv",
+          "file": "billing/invoice.py",
+          "start_line": 38,
+          "code": "    def export_csv(self, path):\n        with open(path, \"w\") as f:\n            f.write(f\"invoice_id,total\\n{self.id},{self.total()}\\n\")\n        return path",
+          "version": "head",
+          "focus_line": 40
+        }
+      ],
+      "priority": 15,
+      "status": "answered",
+      "status_note": "2 grounded concern(s)",
+      "dropped_claims": 0
+    },
+    {
+      "id": "new_method:billing/invoice.py:Invoice.export_csv",
+      "kind": "new_method",
+      "target": "Invoice.export_csv",
+      "file": "billing/invoice.py",
+      "line": 38,
+      "trigger": "new public method Invoice.export_csv",
+      "ask": "`Invoice.export_csv` is new in this PR. Is it consistent with the rest of `Invoice`: its state, its invariants, and how other methods compute the same values? Report only concrete problems, and cite the line.",
+      "context": [
+        {
+          "label": "class Invoice (after the PR)",
+          "file": "billing/invoice.py",
+          "start_line": 5,
+          "code": "class Invoice:\n    def __init__(self, id, line_items, tax_rate=None):\n        self.id = id\n        self.line_items = line_items\n        self.tax_rate = tax_rate  # applied by callers, see billing/reports.py\n        self.total_override = None\n\n    def total(self):\n        subtotal = sum(item.price * item.qty for item in self.line_items)\n        return subtotal * (1 + self.tax_rate) if self.tax_rate else subtotal\n\n    def payable(self):\n        \"\"\"What the customer pays: the discounted total if a code was applied.\"\"\"\n        if self.total_override is not None:\n            return self.total_override\n        return self.total()\n\n    def add_item(self, item):\n        \"\"\"Add a line item (anything with .price and .qty).\"\"\"\n        self.line_items.append(item)\n\n    def item_count(self):\n        \"\"\"Number of units across all line items.\"\"\"\n        return sum(item.qty for item in self.line_items)\n\n    def apply_discount(self, code):\n        discount = DISCOUNT_CODES.get(code)\n        try:\n            if discount:\n                self.total_override = self.total() * (1 - discount)\n        except Exception:\n            pass\n\n    def export_csv(self, path):\n        with open(path, \"w\") as f:\n            f.write(f\"invoice_id,total\\n{self.id},{self.total()}\\n\")\n        return path",
+          "version": "head",
+          "focus_line": null
+        }
+      ],
+      "priority": 5,
+      "status": "answered",
+      "status_note": "1 grounded concern(s)",
+      "dropped_claims": 0
+    }
+  ],
+  "llm": {
+    "provider": "openrouter",
+    "model": "z-ai/glm-5.3-flash",
+    "calls": 2,
+    "failed": 0,
+    "dropped_claims": 0,
+    "prompt_tokens": 2125,
+    "completion_tokens": 7397
+  },
+  "not_checked": [],
+  "notes": [
+    "Policy: policy.yaml.",
+    "Tests: 2/3 pass after the PR; regressions it caused: 1."
+  ]
+}

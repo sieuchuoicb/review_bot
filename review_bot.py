@@ -1,43 +1,22 @@
 """
 review_bot.py
 
-A rough first pass at automating PR review. Point it at a diff and it
-prints a review comment.
+Kept as a compatibility entry point, because people quietly rely on it:
 
-Usage:
-    python review_bot.py sample_diff.txt
+    python review_bot.py sample_diff.txt                 # same call as before
+    python review_bot.py sample_diff.txt --repo PATH     # full checks
 
-Written in a hurry by someone on the team who wanted to stop reading every
-PR line by line. It "works" but nobody's touched it since.
+The original sent the whole diff to one LLM call and printed free text, with
+an API key in the source. It now runs the review_brief pipeline instead:
+rules detect, the LLM answers only the narrow questions the rules raise, and
+a human decides (`review-brief triage`). See README.md.
+
+Keys come from the environment or .env (OPEN_ROUTER_API_KEY, LLM_MODEL_NAME).
 """
 
 import sys
-import openai  # pip install openai
 
-openai.api_key = "sk-REPLACE-ME"  # TODO: move this somewhere safer
-
-PROMPT = """You are a senior engineer reviewing a pull request. Read the diff
-below and write a short review comment covering anything that looks wrong,
-risky, or worth changing.
-
-DIFF:
-{diff}
-"""
-
-
-def main():
-    diff_path = sys.argv[1]
-    with open(diff_path) as f:
-        diff = f.read()
-
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": PROMPT.format(diff=diff)}],
-    )
-
-    comment = response["choices"][0]["message"]["content"]
-    print(comment)
-
+from review_brief.cli import main
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main(["review", *sys.argv[1:]]))

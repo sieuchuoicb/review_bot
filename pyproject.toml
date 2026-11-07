@@ -1,0 +1,32 @@
+[project]
+name = "review-brief"
+version = "0.1.0"
+description = "Evidence-driven PR review brief: rules detect, the LLM interprets, humans decide."
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+    # Verification tools the pipeline runs against the PR (not just dev tools).
+    "ruff>=0.6",
+    "pytest>=8.0",
+]
+
+[project.scripts]
+review-brief = "review_brief.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["review_brief*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+# The fixture repo and eval cases are inputs to the tool, not part of it.
+extend-exclude = ["examples", "evals"]
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]

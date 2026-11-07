@@ -1,0 +1,9 @@
+description: >
+  A docs-only change. Nothing to prove, no risk signal, and therefore no
+  LLM call at all: cost and noise both stay at zero.
+diff: diff.patch
+repo: ../../../examples/billing-service
+expect:
+  risk: low
+  llm_calls: 0
+  max_findings: 0

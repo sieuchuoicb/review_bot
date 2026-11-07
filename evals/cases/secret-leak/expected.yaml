@@ -1,0 +1,15 @@
+description: >
+  The original review_bot.py's own mistake: a key committed in source. A
+  rule catches it, with no LLM involved, and the brief must not repeat the
+  secret it found.
+diff: diff.patch
+repo: ../../../examples/billing-service
+expect:
+  risk: high
+  llm_calls: 0
+  max_findings: 2
+  must_find:
+    - id: policy.secret:billing/settings.py:3
+    - id: policy.sensitive-path:billing/**
+  absent_text:
+    - sk-live-9f8e7d6c5b4a3f2e1d0c

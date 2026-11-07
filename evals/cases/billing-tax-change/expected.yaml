@@ -1,0 +1,24 @@
+description: >
+  The exercise's sample diff. total() starts including tax, apply_discount
+  swallows every error, and export_csv is added. The tools should prove the
+  regression, the lint issue, the callers and the policy points. The LLM
+  should be asked exactly two questions, and its uncited claim must be dropped.
+diff: diff.patch
+repo: ../../../examples/billing-service
+llm_answers: llm_answers.json
+expect:
+  risk: high
+  llm_calls: 2
+  dropped_claims: 1
+  max_findings: 8
+  must_find:
+    - id: safety.test:tests/test_invoice.py::test_total_excludes_tax
+    - id: safety.callers:billing/invoice.py:Invoice.total
+    - id: quality.ruff:billing/invoice.py:35
+    - id: policy.sensitive-path:billing/**
+    - id: policy.untested:billing/invoice.py:Invoice.export_csv
+    - hypothesis_at: billing/reports.py:12    # revenue taxed twice
+    - hypothesis_at: billing/invoice.py:34    # discount now taken off the taxed total
+    - hypothesis_at: billing/invoice.py:40    # export ignores the discount
+  must_not_find:
+    - id_prefix: policy.secret

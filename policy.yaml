@@ -1,0 +1,39 @@
+# Company review policy.
+#
+# The rules are code (review_brief/checkers). This file decides which rules
+# apply, to which paths, and how strictly, so the team can tune them without
+# a code change and without hiding policy inside an LLM prompt.
+
+sensitive_paths:
+  - pattern: "billing/**"
+    level: high
+    reason: "Moves money."
+    required_approvals: 2
+
+rules:
+  new_public_function_requires_test:
+    enabled: true
+    level: medium
+    test_globs: ["tests/**/*.py", "**/test_*.py", "**/*_test.py"]
+  secrets_in_diff:
+    enabled: true
+    level: high
+
+ruff:
+  # No SIM105: its "use contextlib.suppress" advice still swallows the error.
+  select: ["E9", "F", "B", "BLE", "S110"]
+  severity:           # longest matching code prefix wins
+    E9: high
+    F821: high        # undefined name: fails at runtime
+    S: medium
+    BLE: medium
+    B: medium
+  default_severity: low
+
+tests:
+  timeout_seconds: 120
+
+llm:
+  min_risk: medium            # below this, no LLM call at all
+  max_questions: 4            # cost and noise cap per PR
+  max_concerns_per_question: 3

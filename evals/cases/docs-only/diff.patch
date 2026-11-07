@@ -1,0 +1,9 @@
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-# billing-service (fixture)
++# billing-service (review fixture)
+
+ A tiny stand-in for the service `sample_diff.txt` was written against. The
+ exercise ships only a diff, so this repo gives the review pipeline real code

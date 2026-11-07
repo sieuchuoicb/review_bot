@@ -1,0 +1,40 @@
+{
+  "behaviour_change:billing/invoice.py:Invoice.total": {
+    "concerns": [
+      {
+        "claim": "monthly_revenue applies tax on top of Invoice.total(), which now already includes tax, so taxed invoices are taxed twice in the month-end revenue report.",
+        "file": "billing/reports.py",
+        "line": 12,
+        "why": "Before the PR total() was pre-tax and monthly_revenue's docstring relies on that. After it, total() multiplies by (1 + tax_rate) and the caller multiplies again.",
+        "confidence": "high"
+      },
+      {
+        "claim": "apply_discount now discounts the tax-inclusive total, which changes what customers pay when a code is used.",
+        "file": "billing/invoice.py",
+        "line": 34,
+        "why": "The override is computed from total(), which now includes tax; whether discounts apply before or after tax is a business rule.",
+        "confidence": "medium"
+      },
+      {
+        "claim": "The payments service probably double-charges too.",
+        "file": "payments/charge.py",
+        "line": 40,
+        "why": "Guess: this file was never shown, so the claim cannot be checked and must be dropped.",
+        "confidence": "low"
+      }
+    ],
+    "no_concern_reason": null
+  },
+  "new_method:billing/invoice.py:Invoice.export_csv": {
+    "concerns": [
+      {
+        "claim": "export_csv writes total() and ignores total_override, so exported invoices lose any applied discount, unlike payable().",
+        "file": "billing/invoice.py",
+        "line": 40,
+        "why": "payable() returns total_override when a discount code was applied; export_csv bypasses it.",
+        "confidence": "high"
+      }
+    ],
+    "no_concern_reason": null
+  }
+}

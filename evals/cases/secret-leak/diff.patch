@@ -1,0 +1,9 @@
+diff --git a/billing/settings.py b/billing/settings.py
+new file mode 100644
+--- /dev/null
++++ b/billing/settings.py
+@@ -0,0 +1,4 @@
++"""Settings for the billing service."""
++
++PAYMENT_API_KEY = "sk-live-9f8e7d6c5b4a3f2e1d0c"
++TIMEOUT_SECONDS = 30
